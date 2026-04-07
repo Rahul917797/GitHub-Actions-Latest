@@ -1,27 +1,25 @@
-package com.mycompany.app;
+import com.sun.net.httpserver.HttpServer;
+import com.sun.net.httpserver.HttpHandler;
+import com.sun.net.httpserver.HttpExchange;
+import java.io.IOException;
+import java.io.OutputStream;
+import java.net.InetSocketAddress;
 
-/**
- * Hello world!
- */
 public class App {
-
-    private static final String MESSAGE = "Hello World!";
-
-    public App() {}
-
-    public static void main(String[] args) {
-        System.out.println(MESSAGE);
-
-        // Keep the application running to avoid CrashLoopBackOff
-        try {
-            Thread.sleep(Long.MAX_VALUE);
-        } catch (InterruptedException e) {
-            System.out.println("Application interrupted");
-            Thread.currentThread().interrupt();
-        }
+    public static void main(String[] args) throws IOException {
+        HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
+        server.createContext("/", new MyHandler());
+        server.start();
     }
 
-    public String getMessage() {
-        return MESSAGE;
+    static class MyHandler implements HttpHandler {
+        @Override
+        public void handle(HttpExchange exchange) throws IOException {
+            String response = "Hello World!";
+            exchange.sendResponseHeaders(200, response.getBytes().length);
+            OutputStream os = exchange.getResponseBody();
+            os.write(response.getBytes());
+            os.close();
+        }
     }
 }
