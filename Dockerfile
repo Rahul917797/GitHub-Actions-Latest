@@ -15,7 +15,6 @@ COPY start.sh /start.sh
 RUN chmod +x /start.sh
 
 # Expose both app and nginx ports
-EXPOSE 8080
 EXPOSE 80
 
 # Start Java and nginx
