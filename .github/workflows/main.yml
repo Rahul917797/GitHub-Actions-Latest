@@ -35,7 +35,6 @@ jobs:
 
       - name: Build JAR
         run: |
-          cd simple-java-maven-app
           mvn clean package
 
       - name: Log in to Amazon ECR
