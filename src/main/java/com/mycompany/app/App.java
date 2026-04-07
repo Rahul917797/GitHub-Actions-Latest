@@ -1,3 +1,5 @@
+package com.mycompany.app;
+
 import com.sun.net.httpserver.HttpServer;
 import com.sun.net.httpserver.HttpHandler;
 import com.sun.net.httpserver.HttpExchange;
@@ -10,6 +12,7 @@ public class App {
         HttpServer server = HttpServer.create(new InetSocketAddress(8080), 0);
         server.createContext("/", new MyHandler());
         server.start();
+        System.out.println("Server started on port 8080");
     }
 
     static class MyHandler implements HttpHandler {
