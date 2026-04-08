@@ -50,12 +50,13 @@ jobs:
       - name: Run Unit Tests
         run: mvn test
 
-      - name: SonarCloud Scan
-        uses: SonarSource/sonarcloud-github-action@v2
-        with:
-          projectBaseDir: .
-        env:
-            SONAR_TOKEN: ${{ secrets.SONAR_TOKEN }}
+      - name: Sonar Scan
+        run: |
+          mvn clean verify sonar:sonar \
+          -Dsonar.projectKey=Rahul917797_GitHub-Actions-Latest \
+          -Dsonar.organization=rahul917797 \
+          -Dsonar.host.url=https://sonarcloud.io \
+          -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
 
   security-scan:
