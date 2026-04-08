@@ -1,4 +1,4 @@
-name: Deploy Java App to EKS
+name: Deploy Java App to EKS Cluster
 
 on:
   push:
