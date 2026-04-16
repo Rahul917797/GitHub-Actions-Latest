@@ -10,91 +10,93 @@ env:
   EKS_CLUSTER_NAME: Rahul
   ECR_REGISTRY: 224075521027.dkr.ecr.us-east-1.amazonaws.com
   ECR_REPOSITORY: myapp
-  IMAGE_TAG: latest
+  IMAGE_TAG: ${{ github.sha }}
 
 jobs:
 
+# ---------------- BUILD ----------------
   build:
     name: Build JAR
     runs-on: ubuntu-latest
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
       - name: Set up Java
         uses: actions/setup-java@v3
         with:
-          distribution: 'temurin'
-          java-version: '17'
+          distribution: temurin
+          java-version: 17
 
       - name: Build JAR
-        run: mvn clean package
+        run: mvn clean package -DskipTests
 
-      - name: Upload JAR Artifact
+      - name: Upload JAR
         uses: actions/upload-artifact@v4
         with:
           name: app-jar
           path: target/*.jar
 
 
+# ---------------- TEST ----------------
   testing:
-    name: Testing Code
+    name: Testing
     runs-on: ubuntu-latest
     needs: build
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Run Unit Tests
+      - name: Set up Java
+        uses: actions/setup-java@v3
+        with:
+          distribution: temurin
+          java-version: 17
+
+      - name: Run Tests
         run: mvn test
 
       - name: Sonar Scan
         run: |
-          mvn clean verify sonar:sonar \
+          mvn verify sonar:sonar \
           -Dsonar.projectKey=Rahul917797_GitHub-Actions-Latest \
           -Dsonar.organization=rahul917797 \
           -Dsonar.host.url=https://sonarcloud.io \
           -Dsonar.login=${{ secrets.SONAR_TOKEN }}
 
 
+# ---------------- SECURITY ----------------
   security-scan:
     name: Security Scan
     runs-on: ubuntu-latest
     needs: testing
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Run Trivy File Scan
+      - name: Run Trivy
         uses: aquasecurity/trivy-action@master
         with:
           scan-type: fs
           scan-ref: .
-          format: json
-          exit-code: 0
-          vuln-type: os,library
-          output: trivy-results.json
 
 
+# ---------------- DOCKER ----------------
   docker:
     name: Build & Push Image
     runs-on: ubuntu-latest
     needs: security-scan
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Download JAR Artifact
+      - name: Download JAR
         uses: actions/download-artifact@v4
         with:
           name: app-jar
           path: target
 
-      - name: Configure AWS credentials
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -104,22 +106,22 @@ jobs:
       - name: Login to ECR
         uses: aws-actions/amazon-ecr-login@v1
 
-      - name: Build & Push Docker Image
+      - name: Build & Push Image
         run: |
           docker build -t $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG .
           docker push $ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
 
+# ---------------- DEPLOY ----------------
   deploy:
     name: Deploy to EKS
     runs-on: ubuntu-latest
     needs: docker
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v3
+      - uses: actions/checkout@v3
 
-      - name: Configure AWS credentials
+      - name: Configure AWS
         uses: aws-actions/configure-aws-credentials@v2
         with:
           aws-access-key-id: ${{ secrets.AWS_ACCESS_KEY_ID }}
@@ -129,12 +131,11 @@ jobs:
       - name: Update kubeconfig
         run: |
           aws eks update-kubeconfig --region $AWS_REGION --name $EKS_CLUSTER_NAME
-
-      - name: Deploy to Kubernetes
+          
+      - name: Set Image
         run: |
-          kubectl apply -f deployment.yml
-          kubectl apply -f service.yml
+          kubectl set image deployment/java-app java-app=$ECR_REGISTRY/$ECR_REPOSITORY:$IMAGE_TAG
 
-      - name: Restart Deployment
+      - name: Verify rollout
         run: |
-          kubectl rollout restart deployment/java-app
+          kubectl rollout status deployment/java-app
