@@ -17,4 +17,8 @@ public class App {
     public String hello() {
         return "Hello World!";
     }
+
+    public String getMessage() {
+        return "Hello World!";
+    }
 }
